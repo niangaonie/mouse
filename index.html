@@ -2,9 +2,8 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>会眨眼的小鼠</title>
+    <title>会眨眼的智能小鼠</title>
     <style>
-        /* 保持原有布局样式不变 */
         body {
             margin: 0;
             height: 100vh;
@@ -13,6 +12,7 @@
             align-items: center;
             background: #f0f0f0;
             overflow: hidden;
+            touch-action: manipulation;
         }
 
         #mouse-container {
@@ -20,135 +20,106 @@
             max-width: 90%;
             max-height: 90%;
         }
-         /* 添加状态提示样式 */
+
         #status {
             position: fixed;
-            bottom: 20px; left: 20px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
             color: white;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        /* 新增加载闭眼图到内存 */
-        body::after {
-            content: url(mouse-close.png);
-            display: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(5px);
+            z-index: 100;
         }
 
         #mouse-character {
-            /* 保持原有呼吸动画 */
-            animation: breath 4s ease-in-out infinite;
-            /* 新增加眨眼动画 */
             animation: breath 4s ease-in-out infinite, blink 5s infinite;
-           
-         image-rendering: crisp-edges;
-         backface-visibility: hidden;
+            image-rendering: crisp-edges;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
-        /* 呼吸动画 */
         @keyframes breath {
             0% { transform: scale(0.98); }
             50% { transform: scale(1.02); }
             100% { transform: scale(0.98); }
         }
 
-        /* 眨眼动画 */
         @keyframes blink {
-            0%, 96%, 100% { opacity: 1; content: url(mouse-open.png); }
-            97%, 99% { opacity: 0.8; content: url(mouse-close.png); }
+            0%, 96%, 100% { opacity: 1; }
+            97%, 99% { opacity: 0.3; }
         }
+
         #dialog-box {
             position: fixed;
-            top: 50%;
+            bottom: 20%;
             left: 50%;
-            transform: translate(0%, 120%);
+            transform: translateX(-50%);
             background: rgba(0,0,0,0.8);
-            color: rgba(255, 255, 255, 0.932);
-            padding: 15px 25px;
-            border-radius: 25px;
-            font-family: Arial;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-family: 'Arial', sans-serif;
+            max-width: 80%;
+            text-align: center;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease;
             pointer-events: none;
-            white-space: nowrap;
-            box-shadow: 0 50px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 90;
         }
+
         #dialog-box.show {
             opacity: 1;
-            transform: translate(20%, 200%);
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+            100% { filter: brightness(1); }
         }
     </style>
 </head>
 <body>
     <div id="mouse-container">
-        <img src="mouse-open.png" id="mouse-character" alt="小鼠数字人">
-
+        < img src="mouse-open.png" id="mouse-character" alt="智能小鼠">
     </div>
-    <div id="status">点击小鼠开始说话</div>
-
-
-    
+    <div id="status">点击小鼠开始对话</div>
+    <div id="dialog-box"></div>
 
     <script>
-        // 保持原有自适应逻辑
-        function adjustSize() {
-            const container = document.getElementById('mouse-container');
-            const img = document.getElementById('mouse-character');
-            
-            const windowRatio = window.innerWidth / window.innerHeight;
-            const imgRatio = img.naturalWidth / img.naturalHeight;
-
-            if (windowRatio > imgRatio) {
-                container.style.maxHeight = "90vh";
-                container.style.maxWidth = "none";
-            } else {
-                container.style.maxWidth = "90vw";
-                container.style.maxHeight = "none";
-            }
-        }
-
-        // 初始化执行
-        adjustSize();
-        window.addEventListener('resize', adjustSize);
-
-        // 增强型眨眼控制（可选）
-        let blinkInterval = setInterval(() => {
-            const mouse = document.getElementById('mouse-character');
-            mouse.style.opacity = 0.8;
-            mouse.src = 'mouse-close.png';
-            
-            setTimeout(() => {
-                mouse.style.opacity = 1;
-                mouse.src = 'mouse-open.png';
-            }, 200); // 眨眼持续时间
-        }, 5000); // 每5秒眨眼一次
-         // 在原有脚本末尾添加以下代码
-         const mouseImg = document.getElementById('mouse-character');
-        const dialog = document.getElementById('dialog-box');
-        <script>
-        // 语音识别初始化
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN';  // 设置中文识别
-        recognition.interimResults = false; // 不返回中间结果
-
         // 元素引用
         const mouseImg = document.getElementById('mouse-character');
         const statusDiv = document.getElementById('status');
+        const dialogBox = document.getElementById('dialog-box');
+        
+        // 语音识别初始化
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        // 状态变量
         let isListening = false;
+        let processing = false;
 
         // 点击交互
         mouseImg.addEventListener('click', toggleRecording);
-        mouseImg.addEventListener('click', () => {
-            dialog.classList.add('show');
-            setTimeout(() => {
-                dialog.classList.remove('show');
-            }, 2000); // 2秒后自动消失
-        });
+        mouseImg.addEventListener('touchstart', toggleRecording, { passive: true });
 
         // 主控制函数
-        async function toggleRecording() {
+        function toggleRecording() {
+            if (processing) return;
+            
             if (!isListening) {
                 startRecording();
             } else {
@@ -159,109 +130,159 @@
         // 开始录音
         function startRecording() {
             recognition.start();
-            statusDiv.textContent = "🎤 正在聆听...";
-            mouseImg.style.filter = "brightness(1.2)";
             isListening = true;
+            processing = true;
+            
+            mouseImg.classList.add('pulse');
+            statusDiv.textContent = "正在聆听...";
+            showDialog("请开始说话", 2000);
         }
 
         // 停止录音
         function stopRecording() {
             recognition.stop();
-            statusDiv.textContent = "⏳ 处理中...";
-            mouseImg.style.filter = "brightness(0.8)";
             isListening = false;
+            
+            mouseImg.classList.remove('pulse');
+            statusDiv.textContent = "处理中...";
+            showDialog("正在思考...", 1500);
+        }
+
+        // 显示对话气泡
+        function showDialog(text, duration) {
+            dialogBox.textContent = text;
+            dialogBox.classList.add('show');
+            
+            if (duration) {
+                setTimeout(() => {
+                    dialogBox.classList.remove('show');
+                }, duration);
+            }
         }
 
         // 语音识别结果处理
         recognition.onresult = async (event) => {
             const transcript = event.results[0][0].transcript;
-            statusDiv.textContent = `🗣 识别内容: ${transcript}`;
+            showDialog(`你说: ${transcript}`, 2000);
             
             try {
-                // 调用知识库
                 const answer = await askOllama(transcript);
-                
-                // 文字转语音
                 speakText(answer);
             } catch (error) {
-                console.error(error);
-                statusDiv.textContent = "❌ 请求失败";
+                console.error('处理失败:', error);
+                statusDiv.textContent = "出错了，请重试";
+                showDialog("我好像出问题了...", 2000);
+        } finally {
+                processing = false;
             }
+        };
+
+        // 错误处理
+        recognition.onerror = (event) => {
+            console.error('语音识别错误:', event.error);
+            statusDiv.textContent = "麦克风访问失败";
+            showDialog("请允许麦克风权限", 2000);
+            processing = false;
+            isListening = false;
+            mouseImg.classList.remove('pulse');
         };
 
         // 调用Ollama API
         async function askOllama(question) {
+            statusDiv.textContent = "思考中...";
+            
             const response = await fetch('http://localhost:11434/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: "deepseek-r1:latest",
-                    prompt: question,
+                    prompt: `用户问: ${question}\n请用中文友好回答:`,
                     stream: false
                 })
             });
 
-            if (!response.ok) throw new Error('API请求失败');
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status}`);
+            }
+
             const data = await response.json();
-            return data.response;
+            return data.response || "我没有理解这个问题";
         }
 
         // 文字转语音
         function speakText(text) {
-            const synth = window.speechSynthesis;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-CN'; // 设置中文发音
-
-            utterance.onstart = () => {
-                statusDiv.textContent = "🔊 播放中...";
-                mouseImg.style.animation = "bounce 0.6s infinite";
-            };
-
-            utterance.onend = () => {
-                statusDiv.textContent = "点击小鼠继续对话";
-                mouseImg.style.animation = "";
-            };
-
-            synth.speak(utterance);
+            return new Promise((resolve) => {
+                statusDiv.textContent = "回答中...";
+                showDialog(text, 5000);
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                
+                // 语音开始时的视觉效果
+                utterance.onstart = () => {
+                    mouseImg.style.animation = "breath 4s ease-in-out infinite, blink 5s infinite, bounce 0.6s infinite";
+                };
+                
+                // 语音结束时的处理
+                utterance.onend = () => {
+                    mouseImg.style.animation = "breath 4s ease-in-out infinite, blink 5s infinite";
+                    statusDiv.textContent = "点击小鼠继续对话";
+                    processing = false;
+                    resolve();
+                };
+                
+                speechSynthesis.speak(utterance);
+            });
         }
-        /* 在<style>中添加 */
-        .loading-dots::after {
-    content: '.';
-       animation: dots 1s infinite;
-}
 
-@keyframes dots {
-    0%, 20% { content: '.'; }
-    40% { content: '..'; }
-    60% { content: '...'; }
-    80%, 100% { content: ''; }
-}
+        // 添加弹跳动画
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-15px) scale(1.05); }
+                }
+            </style>
+        `);
 
-        // 添加动画
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes bounce {
-                0% { transform: translateY(0); }
-                50% { transform: translateY(-20px); }
-                100% { transform: translateY(0); }
-            }
-        `;
-        document.head.appendChild(style);
+        // 初始化语音合成
+        function initVoices() {
+            return new Promise((resolve) => {
+                if (speechSynthesis.getVoices().length > 0) {
+                    resolve();
+                } else {
+                    speechSynthesis.onvoiceschanged = resolve;
+                }
+            });
+        }
 
-        // 错误处理
-        recognition.onerror = (event) => {
-            console.error('识别错误:', event.error);
-            statusDiv.textContent = "❌ 麦克风访问失败";
-        };
-
-      
-
-        // 增强移动端点击体验
-        mouseImg.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 防止移动端触发长按菜单
-            dialog.classList.add('show');
-            setTimeout(() => dialog.classList.remove('show'), 2000);
+        // 页面加载初始化
+        window.addEventListener('load', async () => {
+            await initVoices();
+            statusDiv.textContent = "点击小鼠开始对话";
         });
+
+        // 响应式调整
+        function adjustSize() {
+            const container = document.getElementById('mouse-container');
+            const img = document.getElementById('mouse-character');
+            
+            const windowRatio = window.innerWidth / window.innerHeight;
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+
+            container.style.maxWidth = windowRatio > imgRatio ? "none" : "90vw";
+            container.style.maxHeight = windowRatio > imgRatio ? "90vh" : "none";
+        }
+
+        // 初始化执行
+        if (document.readyState === 'complete') {
+            adjustSize();
+        } else {
+            window.addEventListener('load', adjustSize);
+        }
+        window.addEventListener('resize', adjustSize);
     </script>
 </body>
 </html>
